@@ -127,10 +127,21 @@ namespace UnityPackagesSync
             depsVersions.TryGetValue(depName, out var depVersions);
 
             var currentIndex = depVersions.IndexOf(currentValue);
-            var newIndex = EditorGUILayout.Popup(currentIndex, depVersions.ToArray(), GUILayout.Width(160));
-            
+            var depArray = new string[depVersions.Count+1];
+            depArray[depVersions.Count] = "[Remove]";
+
+            for (var i = 0; i < depVersions.Count; i++)
+                depArray[i] = depVersions[i] == null ? depVersions[i] : depVersions[i].Replace("/", "\\");
+
+            var newIndex = EditorGUILayout.Popup(currentIndex, depArray, GUILayout.Width(160));
+
             if (currentIndex != newIndex)
-                ChangeDependency(projectPath, depName, depVersions[newIndex]);
+            {
+                if (newIndex == depVersions.Count)
+                    ChangeDependency(projectPath, depName, null);
+                else
+                    ChangeDependency(projectPath, depName, depVersions[newIndex]);
+            }
 
             GUI.backgroundColor = originalBackgroundColor;
         }
@@ -141,7 +152,11 @@ namespace UnityPackagesSync
 
             var manifestJson = ReadManifest(projectPath);
             var depsJson = manifestJson.Value<JObject>("dependencies");
-            depsJson[depName] = newValue;
+
+            if (newValue == null)
+                depsJson.Remove(depName);
+            else
+                depsJson[depName] = newValue;
             
             var manifestPath = GetManifestPath(projectPath);
             File.WriteAllText(manifestPath, manifestJson.ToString(Formatting.Indented));
