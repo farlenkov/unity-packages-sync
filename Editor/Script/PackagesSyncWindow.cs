@@ -10,6 +10,7 @@ namespace UnityPackagesSync
     public class PackagesSyncWindow : EditorWindow
     {
         Vector2 scroll;
+        List<string> removedProjectPaths;
         List<string> projectPaths;
         Dictionary<string, string> depsByProject;
         Dictionary<string, List<string>> depsVersions;
@@ -28,6 +29,7 @@ namespace UnityPackagesSync
             Reset<List<string>, string>(ref projectPaths);
             Reset<Dictionary<string, List<string>>, KeyValuePair<string, List<string>>>(ref depsVersions);
             Reset<Dictionary<string, string>, KeyValuePair<string, string>>(ref depsByProject);
+            removedProjectPaths = removedProjectPaths ?? new();
 
             CollectProjectPaths();
             ReadManifestFiles();
@@ -52,6 +54,9 @@ namespace UnityPackagesSync
         {
             foreach (var projectPath in projectPaths)
             {
+                if (removedProjectPaths.Contains(projectPath))
+                    continue;
+
                 var manifestJson = ReadManifest(projectPath);
                 var depsJson = manifestJson.Value<JObject>("dependencies");
                 var projectName = Path.GetFileNameWithoutExtension(projectPath);
@@ -72,9 +77,6 @@ namespace UnityPackagesSync
 
         void DrawDeps()
         {
-            
-            // GUILayout.BeginVertical();
-
             // PROJECT NAMES
 
             GUILayout.BeginHorizontal();
@@ -82,8 +84,14 @@ namespace UnityPackagesSync
 
             foreach(var projectPath in projectPaths)
             {
+                if (removedProjectPaths.Contains(projectPath))
+                    continue;
+
                 var projectName = Path.GetFileNameWithoutExtension(projectPath);
-                GUILayout.Label(projectName, GUILayout.Width(160));
+                //GUILayout.Label(projectName, GUILayout.Width(160));
+
+                if (GUILayout.Button(projectName, GUILayout.Width(160)))
+                    removedProjectPaths.Add(projectPath);
             }
 
             GUILayout.EndHorizontal();
@@ -102,6 +110,9 @@ namespace UnityPackagesSync
 
                 foreach(var projectPath in projectPaths)
                 {
+                    if (removedProjectPaths.Contains(projectPath))
+                        continue;
+
                     var projectName = Path.GetFileNameWithoutExtension(projectPath);
                     var depKey = GetDepKey(projectName, depName);
 
@@ -115,7 +126,6 @@ namespace UnityPackagesSync
                 GUILayout.EndHorizontal();
             }
 
-            // GUILayout.EndVertical();
             GUILayout.EndScrollView();
         }
 
